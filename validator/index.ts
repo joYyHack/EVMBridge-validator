@@ -1,47 +1,32 @@
-// import { readContract, Address } from "@wagmi/core";
-import {
-  BigNumber,
-  constants,
-  Contract,
-  ethers,
-  providers,
-  Wallet,
-} from "ethers";
-import Validator from "../abi/Validator.json";
-import ERC20Safe from "../abi/ERC20Safe.json";
+import { BigNumber, Contract, Wallet } from "ethers";
 import ERC165 from "../abi/ERC165.json";
-import { supportedChains, TokenType } from "../utils/consts&enums";
-// import { fetchToken, getNetwork } from "@wagmi/core";
-import { deployment, Address, networks } from "../utils/consts&enums";
+import ERC20Safe from "../abi/ERC20Safe.json";
+import Validator from "../abi/Validator.json";
+import { ERC20SafeHandler, IERC165, IValidator } from "../typechain-types";
+import {
+  Address,
+  PERMIT_FUNCTION_SELECTOR,
+  TokenType,
+  deployment,
+  networks,
+  supportedChains,
+} from "../utils/consts&enums";
 import alchemy from "../web3/alchemy/alchemy";
-import { Interface } from "ethers/lib/utils";
-import { sign } from "crypto";
 
-let validatorWalletAddress: Address;
-let validatorContractAddress: Address;
-let bridgeAddress: Address;
-let erc20SafeAddress: Address;
+type WithdrawalRequest = IValidator.WithdrawalRequestStruct;
 
-type WithdrawalRequest = {
-  validator: string;
-  bridge: string;
-  from: string;
-  amount: BigNumber;
-  sourceToken: string;
-  sourceTokenSymbol: string;
-  sourceTokenName: string;
-  isSourceTokenPermit: boolean;
-  wrappedToken: string;
-  withdrawalTokenType: TokenType;
-  nonce: BigNumber;
-};
+export const provider = async (chainId: number) =>
+  await alchemy.forNetwork(networks[chainId]).config.getProvider();
+
+export const signer = async (chainId: number) =>
+  new Wallet(process.env.VALIDATOR_PRIV_KEY as string, await provider(chainId));
 
 export const getNonce = async (from: Address, chainId: number) => {
   const validator = new Contract(
-    deployment[chainId].validator,
+    deployment.validator,
     Validator.abi,
-    await alchemy.forNetwork(networks[chainId]).config.getProvider()
-  );
+    await provider(chainId)
+  ) as IValidator;
 
   return await validator.getNonce(from);
 };
@@ -50,11 +35,11 @@ export const isPermit = async (token: Address, chainId: number) => {
   const erc20 = new Contract(
     token,
     ERC165.abi,
-    await alchemy.forNetwork(networks[chainId]).config.getProvider()
-  );
+    await provider(chainId)
+  ) as IERC165;
 
   try {
-    const isPermit = await erc20.supportsInterface("0x9d8ff7da");
+    const isPermit = await erc20.supportsInterface(PERMIT_FUNCTION_SELECTOR);
     return isPermit as boolean;
   } catch {
     return false;
@@ -63,10 +48,10 @@ export const isPermit = async (token: Address, chainId: number) => {
 
 export const getWrappedToken = async (sourceToken: string, chainId: number) => {
   const erc20Safe = new Contract(
-    deployment[chainId].erc20safe,
+    deployment.erc20safe,
     ERC20Safe.abi,
-    await alchemy.forNetwork(networks[chainId]).config.getProvider()
-  );
+    await provider(chainId)
+  ) as ERC20SafeHandler;
 
   return await erc20Safe.getWrappedToken(sourceToken);
 };
@@ -93,9 +78,9 @@ export const createReleaseRequest = async (
     chainId
   );
   const request = {
-    validator: new Wallet(process.env.VALIDATOR_PRIV_KEY as string).address,
-    bridge: deployment[chainId].bridge,
-    from: from.toString(),
+    validator: process.env.VALIDATOR_PUB_KEY,
+    bridge: deployment.bridge,
+    from: from,
     amount,
     sourceToken,
     sourceTokenSymbol: symbol,
@@ -121,8 +106,8 @@ export const createWithdrawRequest = async (
     sourceChainId
   );
   const request = {
-    validator: new Wallet(process.env.VALIDATOR_PRIV_KEY as string).address,
-    bridge: deployment[chainId].bridge,
+    validator: process.env.VALIDATOR_PUB_KEY,
+    bridge: deployment.bridge,
     from: from.toString(),
     amount,
     sourceToken,
@@ -142,15 +127,11 @@ export const signWithdrawalRequest = async (
   value: WithdrawalRequest,
   chainId: number
 ) => {
-  const provider = await alchemy
-    .forNetwork(networks[chainId])
-    .config.getProvider();
-  const signer = new Wallet(process.env.VALIDATOR_PRIV_KEY as string, provider);
   let domain = {
     name: "Validator",
     version: "0.1",
     chainId: chainId,
-    verifyingContract: deployment[chainId].validator,
+    verifyingContract: deployment.validator,
   };
   const types = {
     WithdrawalRequest: [
@@ -167,9 +148,8 @@ export const signWithdrawalRequest = async (
       { name: "nonce", type: "uint256" },
     ],
   };
-  const sig = await signer._signTypedData(domain, types, value);
+  const validator = await signer(chainId);
+  const sig = await validator._signTypedData(domain, types, value);
 
-  console.log("domain", domain);
-  console.log("value", value);
   return sig;
 };

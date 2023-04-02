@@ -1,12 +1,9 @@
-import express, { Express, Request, Response } from "express";
-import dotenv from "dotenv";
-import { json } from "stream/consumers";
-import alchemy from "../web3/alchemy/alchemy";
-import { Alchemy, BigNumber, Network } from "alchemy-sdk";
-import * as validator from "../validator/validator";
-import { parseEther } from "ethers/lib/utils";
-import { Address } from "../utils/consts&enums";
+import { BigNumber } from "alchemy-sdk";
 import bodyParser from "body-parser";
+import dotenv from "dotenv";
+import express, { Express, Request, Response } from "express";
+import { Address } from "../utils/consts&enums";
+import * as validator from "../validator";
 
 dotenv.config();
 
@@ -16,24 +13,18 @@ app.use(bodyParser.json());
 
 const port = process.env.PORT;
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Express + TypeScript Server + Tom");
-});
-
-app.get("/api/v1", (req: Request, res: Response) => {
-  res.json({ message: "Hello from server!" });
-});
-
 app.post(
   "/api/v1/createWithdrawRequest",
   async (req: Request, res: Response) => {
     const { from, amount, sourceToken, chainId } = req.body;
+
     const data = await validator.createWithdrawRequest(
       from as Address,
       BigNumber.from(amount),
       sourceToken as Address,
       chainId as number
     );
+
     res.json({
       sourceTokenSymbol: data.sourceTokenSymbol,
       sourceTokenName: data.sourceTokenName,
@@ -47,20 +38,20 @@ app.post(
   "/api/v1/createReleaseRequest",
   async (req: Request, res: Response) => {
     const { from, amount, sourceToken, chainId } = req.body;
-    // console.log(from, amount, sourceToken, chainId);
+
     const sig = await validator.createReleaseRequest(
       from as Address,
       BigNumber.from(amount),
       sourceToken as Address,
       chainId as number
     );
+
     res.json({ sig });
-    // //console.log("body", req.body);
   }
 );
 
 app.listen(port, () => {
-//   // console.log(
-//   //   `⚡️[server]: Server auuu is running at http://localhost:${port}`
-//   // );
-// });
+  console.log(
+    `⚡️[server]: Server test is running at http://localhost:${port}`
+  );
+});
