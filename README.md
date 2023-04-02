@@ -17,3 +17,11 @@ VALIDATOR_PUB_KEY="pub-key"
 ALCHEMY_SEPOLIA_API_KEY="api-key"
 ALCHEMY_MUMBAI_API_KEY="api-key"
 ```
+
+## Instalation
+```bash
+git clone https://github.com/joYyHack/EVMBridge-validator.git
+npm install
+npm run build
+npm run start
+```
