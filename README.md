@@ -8,6 +8,8 @@ Initially, the validator logic was implemented on the front-end side. However, t
 ## How it works
 When a user initiates the withdrawal or release process on the EVMBridge Client, the client makes an HTTP call to the validator to get a signature. The validator then generates a structure of withdrawal request with valid values. Then created structure is signed using EIP712 and the signature is returned to the client, allowing the user to proceed with the transaction. The signature then will be verified in the Validator contract of the [EVMBridge Contract](https://github.com/joYyHack/EVMBridge) project.
 
+‼️ The incoming amount for withdrawal request is not verified by the validator. It assumes that the amount is valid. The implementation will be added in future versions.
+
 ## .ENV File
 In order to run validator the .env file must be specified with the followed structure
 ```bash
