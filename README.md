@@ -11,7 +11,7 @@ When a user initiates the withdrawal or release process on the EVMBridge Client,
 ## .ENV File
 In order to run validator the .env file must be specified with the followed structure
 ```bash
-PORT="port"
+PORT="port" - default one is 8000
 VALIDATOR_PRIV_KEY="priv-key"
 VALIDATOR_PUB_KEY="pub-key"
 ALCHEMY_SEPOLIA_API_KEY="api-key"
